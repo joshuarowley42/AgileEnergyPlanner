@@ -1,0 +1,15 @@
+# Virtual Environment
+venv
+
+# MacOS files
+.idea
+
+# Python bytecode
+*.pyc
+
+# Confidential files
+config/local_config.py
+cache.json
+
+#Working files
+figure.png

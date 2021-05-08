@@ -1,0 +1,7 @@
+Agile Energy Planner is offered to you under the Creative
+Commons Attribution Share Alike 4.0 license (cc-by-sa-4.0)
+
+Agile Energy Planner is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
