@@ -67,7 +67,7 @@ def show_plot(gp=None, ep=None,
         if square_lines:
             for k in list(ep.keys()):
                 ep[k + timedelta(minutes=29, seconds=59)] = ep[k]
-        prices_pd_ep = pandas.DataFrame.from_dict(ep, orient="index", columns=['electricity']).sort_index()
+        prices_pd_ep = pandas.DataFrame.from_dict(ep, orient="index", columns=['electricity'])
         prices_pd_ep.plot(y=["electricity"], ax=ax)
         ax = plt.gca()
         ax.set_ylim(0, 40)
@@ -76,7 +76,7 @@ def show_plot(gp=None, ep=None,
         if square_lines:
             for k in list(gp.keys()):
                 gp[k + timedelta(minutes=29, seconds=59)] = gp[k]
-        prices_pd_gp = pandas.DataFrame.from_dict(gp, orient="index", columns=['gas']).sort_index()
+        prices_pd_gp = pandas.DataFrame.from_dict(gp, orient="index", columns=['gas'])
         prices_pd_gp.plot(y=["gas"], ax=ax)
         ax = plt.gca()
         ax.set_ylim(0, 40)
@@ -104,7 +104,7 @@ def show_plot(gp=None, ep=None,
     ax.grid(which='minor')
 
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%a %d %H%M', tz=TIMEZONE))
-    ax.xaxis.set_minor_locator(AutoMinorLocator(n=4))
+    ax.xaxis.set_minor_locator(AutoMinorLocator(n=3))
     ax.tick_params(which='both', width=1)
     ax.tick_params(which='major', length=7)
     ax.tick_params(which='minor', length=4)

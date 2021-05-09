@@ -77,10 +77,12 @@ def notify_users_of_prices(hours=3, show_graph=False):
     if show_graph:
         planner.plot_future_prices(starts_and_stops=best_starts_and_stops + peak_starts_and_stops)
 
+    png = planner.plot_future_prices(starts_and_stops=best_starts_and_stops + peak_starts_and_stops,
+                                     return_file=True)
     if not DEV_MODE:
-        png = planner.plot_future_prices(starts_and_stops=best_starts_and_stops + peak_starts_and_stops,
-                                         return_file=True)
         now = format_short_date(datetime.now(tz=TIMEZONE))
         send_email(subject=f"Electricity Prices - From {now}",
                    message=a, png=png)
+    else:
+        print(a)
 

@@ -30,7 +30,7 @@ from tasks.tasks import notify_users_of_prices
 
 def tesla_journey():
     # Plan charging for the Tesla
-    depart_time = 16
+    depart_time = 8
 
     now = datetime.now(tz=TIMEZONE)
     depart = now.replace(hour=depart_time, minute=0, second=0)
@@ -38,13 +38,13 @@ def tesla_journey():
     if now.hour > depart_time:
         depart = depart + timedelta(days=1)
 
-    charging_periods = planner.plan_car_charging(departure=depart, hours_needed=2,
+    charging_periods = planner.plan_car_charging(departure=depart, hours_needed=5,
                                                  max_cost=15, graph=True)
 
-    if not DEV_MODE:
-        for period in charging_periods:
-            print("Charge Period: {}".format(format_short_date_range(period)))
-            start, stop = period
+    for period in charging_periods:
+        print("Charge Period: {}".format(format_short_date_range(period)))
+        start, stop = period
+        if not DEV_MODE:
             tesla_start_charging.apply_async(eta=start)
             tesla_stop_charging.apply_async(eta=stop)
 
@@ -65,10 +65,10 @@ def show_usage():
 
 if __name__ == "__main__":
 
-    notify_users_of_prices(show_graph=True)
+    notify_users_of_prices(show_graph=False)
     # show_usage()
 
-    # tesla_journey()
+    #tesla_journey()
 
 
 

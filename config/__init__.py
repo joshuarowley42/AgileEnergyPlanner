@@ -1,5 +1,5 @@
 # WARNING - Don't put any confidential information in here if you plan to
-# version-control your instance of this bodebase. Instead; create a file
+# version-control your instance of this codebase. Instead; create a file
 # "local_config.py" in this directory and declare any variables you don't
 # want in version control in there.
 
