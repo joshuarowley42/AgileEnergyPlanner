@@ -1,8 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pandas
 import logging
 
-from .data_tools import find_contiguous_periods, start_of_previous_period
+from .data_tools import find_contiguous_periods, start_of_current_period
 from .visualisation_tools import show_plot
 
 
@@ -10,22 +10,15 @@ class EnergyPlanner:
     def __init__(self, energy_provider, car=None):
         self.energy_provider = energy_provider
         self.car = car
-        self.__ep = None
 
     @property
     def ep_from_now(self):
         """
-        Get electricity prices starting from "now", from cache if available,
-        otherwise download them from the API.
-
-        ToDo: Won't persist between runtimes. No timeout. Use Redis!
+        Get electricity prices starting from "now" - start of the current-half-hour period..
         """
 
-        if self.__ep is not None:
-            return self.__ep
-        start_time = start_of_previous_period()
-        self.__ep = self.energy_provider.get_elec_price(start_time)
-        return self.__ep
+        start_time = start_of_current_period()
+        return self.energy_provider.get_elec_price(start_time)
 
     def average_price(self, excluded_periods=None):
         """

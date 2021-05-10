@@ -1,2 +1,2 @@
 
-from .octopus_api import OctopusAPIClient
+from .octopus_data import OctopusClient

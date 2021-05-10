@@ -34,9 +34,9 @@ def find_contiguous_periods(target_times: pandas.DataFrame):
     return contiguous_periods
 
 
-def start_of_previous_period():
+def start_of_current_period():
     """
-    Quickly get the start time of the previous period.
+    Quickly get the start time of the current period.
     """
 
     now = datetime.now(tz=timezone.utc)

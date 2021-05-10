@@ -3,7 +3,7 @@ from celery import Celery
 from datetime import datetime
 
 from config import *
-from octopus import OctopusAPIClient
+from octopus import OctopusClient
 from insights import EnergyPlanner, EnergyUsage
 from insights.data_tools import format_short_date_range, format_short_date
 from tesla import TeslaAPIClient
@@ -23,12 +23,12 @@ app.conf.broker_transport_options = {'visibility_timeout': 3600*24}
 
 
 # Bring in our apps
-energy_provider = OctopusAPIClient(username=OCTOPUS_USERNAME,
-                                   zone=OCTOPUS_ZONE,
-                                   e_mpan=OCTOPUS_ELEC_MPAN,
-                                   e_msn=OCTOPUS_ELEC_MSN,
-                                   g_mprn=OCTOPUS_GAS_MPRN,
-                                   g_msn=OCTOPUS_GAS_MSN)
+energy_provider = OctopusClient(username=OCTOPUS_USERNAME,
+                                zone=OCTOPUS_ZONE,
+                                e_mpan=OCTOPUS_ELEC_MPAN,
+                                e_msn=OCTOPUS_ELEC_MSN,
+                                g_mprn=OCTOPUS_GAS_MPRN,
+                                g_msn=OCTOPUS_GAS_MSN)
 
 planner = EnergyPlanner(energy_provider)    # Don't need a car in the planner
 usage = EnergyUsage(energy_provider)
