@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, timedelta
 
 from .octopus_api import OctopusAPIClient
-from data_store.models import EnergyPrices, session
+from data_store import EnergyPrices, session
 
 
 class OctopusClient(OctopusAPIClient):
@@ -9,10 +9,14 @@ class OctopusClient(OctopusAPIClient):
 
         r = session.query(EnergyPrices)\
             .where(EnergyPrices.time >= start_time)\
-            .order_by(EnergyPrices.time.asc())
+            .order_by(EnergyPrices.time.asc())\
+            .all()
 
         prices_dict = {row.time_utc: row.price for row in r}
-        last_time = max(prices_dict.keys())
+        if prices_dict:
+            last_time = max(prices_dict.keys())
+        else:
+            last_time = start_time
 
         new_prices = self.check_for_new_prices(since=last_time)
 
@@ -35,7 +39,7 @@ class OctopusClient(OctopusAPIClient):
             # Already have tomorrow's data
             return {}
 
-        if now.astimezone().hour > 16:
+        if now.astimezone().hour >= 16:
             # After 1600, we might expect tomorrow's prices.
             # Given that we don't already have that data, go and check for it!
             return super().get_elec_price(since + timedelta(minutes=30))

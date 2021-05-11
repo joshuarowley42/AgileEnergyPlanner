@@ -20,6 +20,23 @@ class EnergyPlanner:
         start_time = start_of_current_period()
         return self.energy_provider.get_elec_price(start_time)
 
+    @property
+    def tomorrows_data_available(self):
+        """
+        Check if data is available for tomorrow.
+
+        Note that the get_elec_price (called in ep_from_now) doesn't make an API call unless there is
+        a chance that the data is available, so there is no penalty for calling this at any time of day.
+
+        :return: bool
+        """
+        now = datetime.now(tz=timezone.utc)
+        prices_dict = self.ep_from_now
+        last_time = max(prices_dict.keys())
+        if last_time.day > now.day:
+            return True
+        return False
+
     def average_price(self, excluded_periods=None):
         """
         Get average electricity prices from "now". Optionally exclude some periods from the averages.
@@ -130,13 +147,13 @@ class EnergyPlanner:
             periods = int(hours_needed * 2)
 
         ep = self.ep_from_now
-        ep_pd = pandas.DataFrame.from_dict(ep, orient="index", columns=['price'])
+        ep_pd = pandas.DataFrame.from_dict(ep, orient="index", columns=['price']).sort_index()
         data_end = max(ep_pd.index)
 
         if departure is not None:
             assert departure.tzinfo, "'before' must be supplied timezone aware"
             assert departure <= data_end, f"No data for requested 'before' time. Max: {data_end}"
-            ep_pd = ep_pd.loc[departure - timedelta(minutes=30):]
+            ep_pd = ep_pd.loc[:departure - timedelta(minutes=30)]
         else:
             logging.warning(f"No 'before' specified. Using end-date of {data_end}")
 

@@ -40,12 +40,10 @@ def start_of_current_period():
     """
 
     now = datetime.now(tz=timezone.utc)
-    previous_period = datetime(year=now.year,
-                               month=now.month,
-                               day=now.day,
-                               hour=now.hour,
-                               minute=now.minute - (now.minute % 30),
-                               tzinfo=timezone.utc)
+    previous_period = now.replace(minute=now.minute - (now.minute % 30),
+                                  second=0,
+                                  microsecond=0)
+
     return previous_period
 
 
@@ -70,9 +68,12 @@ def format_short_date_range(ss: (datetime, datetime), tz=TIMEZONE):
     """
 
     (start, stop) = ss
-    assert start.day == stop.day
+
     start_local = start.astimezone(tz)
     stop_local = stop.astimezone(tz)
     date_string = datetime.strftime(start_local, "%a %d %H%M")
     date_string += datetime.strftime(stop_local, "-%H%M")
+    if start.day != stop.day:
+        assert stop.day == start.day + 1, "Stop day must be same day, or the day after, start day."
+        date_string += "*"  # * indicates next day
     return date_string

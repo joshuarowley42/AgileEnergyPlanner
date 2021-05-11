@@ -1,13 +1,12 @@
+import logging
 
 from celery import Celery
-from datetime import datetime
 
 from config import *
 from octopus import OctopusClient
 from insights import EnergyPlanner, EnergyUsage
-from insights.data_tools import format_short_date_range, format_short_date
+from actions import notify_users_of_prices
 from tesla import TeslaAPIClient
-from messaging import send_email
 
 # Configure Celery
 app = Celery('tasks.tasks',
@@ -55,34 +54,6 @@ def tesla_stop_charging():
 
 
 @app.task
-def notify_users_of_prices(hours=3, show_graph=False):
-
-    average = planner.average_price()
-
-    # Get good times to do a 3h load of dishes or clothes
-    best_starts_and_stops, best_price = planner.plan_usage_periods(hours=hours, mode="best")
-    best_time = format_short_date_range(best_starts_and_stops[0])
-
-    # Get peak 3h slot (normally gonna be 1600-1900)
-    peak_starts_and_stops, peak_price = planner.plan_usage_periods(hours=hours, mode="peak")
-    peak_time = format_short_date_range(peak_starts_and_stops[0])
-
-    average_excluding_peak = planner.average_price(excluded_periods=peak_starts_and_stops)
-
-    a = f"BEST 3h {best_time} - {best_price:.2f}p/kWh\n" \
-        f"PEAK 3h {peak_time} - {peak_price:.2f}p/kWh\n" \
-        f"Average all-day: {average:.2f}p/kWh\n" \
-        f"Average outside peak: {average_excluding_peak:.2f}p/kWh\n"
-
-    if show_graph:
-        planner.plot_future_prices(starts_and_stops=best_starts_and_stops + peak_starts_and_stops)
-
-    png = planner.plot_future_prices(starts_and_stops=best_starts_and_stops + peak_starts_and_stops,
-                                     return_file=True)
-    if not DEV_MODE:
-        now = format_short_date(datetime.now(tz=TIMEZONE))
-        send_email(subject=f"Electricity Prices - From {now}",
-                   message=a, png=png)
-    else:
-        print(a)
+def daily_user_notification():
+    notify_users_of_prices(hours=3, show_graph=False)
 

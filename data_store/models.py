@@ -1,12 +1,7 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker, validates
+from sqlalchemy.orm import declarative_base, validates, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy import Column, Integer, DateTime, Float
+from sqlalchemy import Column, Integer, DateTime, Float, Boolean, ForeignKey
 from datetime import timezone
-
-engine = create_engine('sqlite:///db.sqlite', echo=True)
-Session = sessionmaker(bind=engine)
-session = Session()
 
 Base = declarative_base()
 
@@ -31,6 +26,36 @@ class EnergyPrices(Base):
         return "<Price(time={}, price={})>".format(self.time, self.price)
 
 
-Base.metadata.create_all(engine)
+class EmailLog(Base):
+    __tablename__ = 'email_log'
+
+    id = Column(Integer, primary_key=True)
+    time = Column(DateTime)
+
+    @hybrid_property
+    def time_utc(self):
+        return self.time.replace(tzinfo=timezone.utc)
+
+    def __repr__(self):
+        return "<Price(time={}, price={})>".format(self.time, self.price)
 
 
+class CarChargingSession(Base):
+    __tablename__ = 'car_charging_session'
+
+    id = Column(Integer, primary_key=True)
+    departure = Column(DateTime)
+
+    children = relationship("CarChargingPeriod",
+                            cascade="all, delete, delete-orphan")
+
+
+class CarChargingPeriod(Base):
+    __tablename__ = 'car_charging_period'
+
+    id = Column(Integer, primary_key=True)
+    start_time = Column(DateTime)
+    stop_time = Column(DateTime)
+    scheduled = Column(Boolean)
+
+    parent_id = Column(Integer, ForeignKey('car_charging_session.id'))

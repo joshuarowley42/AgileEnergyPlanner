@@ -1,15 +1,20 @@
-# WARNING - Don't put any confidential information in here if you plan to
-# version-control your instance of this codebase. Instead; create a file
-# "local_config.py" in this directory and declare any variables you don't
-# want in version control in there.
+"""Configuration Module
 
+WARNING - Don't put any confidential information in here if you plan to
+version-control your instance of this codebase. Instead; create a file
+"local_config.py" in this directory and declare any variables you don't
+want in version control in there.
+
+Just a bunch of variables used to configure things.
+
+"""
 
 from datetime import time
 import pytz
 
 TIMEZONE = pytz.timezone("Europe/London")
 
-DEV_MODE = False
+DEV_MODE = True
 
 PHASE_A_END = time(hour=8)
 PHASE_B_END = time(hour=23)
