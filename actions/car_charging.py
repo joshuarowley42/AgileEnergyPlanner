@@ -7,7 +7,7 @@ from tesla import TeslaAPIClient
 from octopus import OctopusClient
 from insights import EnergyPlanner
 from insights.data_tools import format_short_date_range
-#from tasks.tasks import tesla_start_charging, tesla_stop_charging
+from tasks.tasks import tesla_start_charging, tesla_stop_charging
 
 from data_store import session, CarChargingSession, CarChargingPeriod
 

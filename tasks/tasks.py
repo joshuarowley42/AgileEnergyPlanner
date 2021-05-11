@@ -5,7 +5,7 @@ from celery import Celery
 from config import *
 from octopus import OctopusClient
 from insights import EnergyPlanner, EnergyUsage
-from actions import notify_users_of_prices
+from actions.user_communications import notify_users_of_prices
 from tesla import TeslaAPIClient
 
 # Configure Celery
