@@ -50,7 +50,7 @@ class OctopusAPIClient:
 
         return price_list
 
-    def get_elec_price(self, start_time):
+    def get_elec_price(self, start_time, end_time=None):
         url = "{base}/products/" \
               "{tc}/electricity-tariffs/" \
               "E-1R-{tc}-{zone}/" \
@@ -59,11 +59,14 @@ class OctopusAPIClient:
                                            zone=self.OCTOPUS_ZONE)
 
         prices = []
+        params = {"period_from": datetime.strftime(start_time, "%Y-%m-%dT%H:%M:%S%z")}
+        if end_time is not None:
+            params["period_to"] = datetime.strftime(end_time, "%Y-%m-%dT%H:%M:%S%z")
+
         while url is not None:
-            r = requests.get(url, params={
-                "period_from": datetime.strftime(start_time, "%Y-%m-%dT%H:%M:%S%z")})
+            r = requests.get(url, params=params)
             response = r.json()
-            prices += response['results']
+            prices += response.get('results', [])
             url = response.get("next", None)
 
         price_list = {}

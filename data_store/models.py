@@ -10,7 +10,7 @@ class EnergyPrices(Base):
     __tablename__ = 'energy_prices'
 
     id = Column(Integer, primary_key=True)
-    time = Column(DateTime)
+    time = Column(DateTime, unique=True)
     price = Column(Float)
 
     @hybrid_property
