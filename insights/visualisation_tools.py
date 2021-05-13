@@ -7,6 +7,7 @@ import pandas
 
 from bokeh.plotting import figure, show
 from bokeh.models import Span
+from bokeh.models.formatters import DatetimeTickFormatter
 from bokeh.resources import CDN
 from bokeh.embed import file_html
 
@@ -117,8 +118,8 @@ def show_plot(gp=None, ep=None,
     if return_file:
         plt.savefig("figure.png")
         with open("figure.png", "rb") as f:
-            figure = f.read()
-        return figure
+            png_data = f.read()
+        return png_data
     else:
         plt.show()
 
@@ -131,6 +132,8 @@ def plot_html(dfs: list[pandas.DataFrame],
               ):
 
     plot = figure(x_axis_type='datetime')
+    # plot.xaxis.formatter = DatetimeTickFormatter(days='%H')
+    plot.xaxis.minor_tick_line_color = "red"
 
     line_colours = ["blue", "orange", "red", "green"]
 
@@ -169,7 +172,7 @@ def plot_html(dfs: list[pandas.DataFrame],
         plot.line(df.index,
                   df[df.columns[0]].values.tolist(),
                   legend_label=df.columns[0],
-                  color=line_colours[i%len(line_colours)])
+                  color=line_colours[i % len(line_colours)])
         i += 1
 
     return file_html(plot, CDN)

@@ -58,8 +58,7 @@ def plan_charging(departure_hour,
 
     charging_periods = planner.plan_car_charging(departure=departure,
                                                  hours_needed=hours_needed,
-                                                 max_cost=max_cost,
-                                                 graph=True)
+                                                 max_cost=max_cost)
 
     for period in charging_periods:
         logging.info("Charge Period: {}".format(format_short_date_range(period)))

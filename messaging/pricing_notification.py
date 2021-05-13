@@ -35,7 +35,6 @@ def notify_users_of_prices(hours=3):
     being sent.
 
     :param hours: The size of the "best" and "peak" slots.
-    :param show_graph: Show an interactive graph. Will prevent email being sent.
     :return: None
     """
     now = datetime.now(tz=timezone.utc)

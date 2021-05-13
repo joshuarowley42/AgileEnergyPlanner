@@ -6,6 +6,17 @@ from .data_tools import find_contiguous_periods, start_of_current_period
 from .visualisation_tools import show_plot
 
 
+def drop_periods_from_df(df: pandas.DataFrame,
+                         periods: list[(datetime, datetime)]) -> pandas.DataFrame:
+
+    periods_to_drop = []
+    for period in periods:
+        (start, stop) = period
+        periods_to_drop += list(df[start:stop - timedelta(minutes=30)].index)
+    df = df.drop(index=periods_to_drop)
+    return df
+
+
 class EnergyPlanner:
     def __init__(self, energy_provider, car=None):
         self.energy_provider = energy_provider
@@ -21,7 +32,7 @@ class EnergyPlanner:
         return self.energy_provider.get_elec_price(start_time)
 
     def ep_from_now_df(self,
-                       excluded_periods: (datetime, datetime) = None,
+                       excluded_periods: list[(datetime, datetime)] = None,
                        column_name: str = 'electricity price') -> pandas.DataFrame:
 
         start_time = start_of_current_period()
@@ -29,11 +40,7 @@ class EnergyPlanner:
         ep_pd = pandas.DataFrame.from_dict(ep, orient="index", columns=[column_name]).sort_index()
 
         if excluded_periods is not None:
-            periods_to_drop = []
-            for period in excluded_periods:
-                (start, stop) = period
-                periods_to_drop += list(ep_pd[start:stop - timedelta(minutes=30)].index)
-            ep_pd = ep_pd.drop(index=periods_to_drop)
+            ep_pd = drop_periods_from_df(ep_pd, excluded_periods)
 
         return ep_pd
 
@@ -44,6 +51,9 @@ class EnergyPlanner:
         start_time = start_of_current_period()
         gp = self.energy_provider.get_gas_price(start_time)
         gp_pd = pandas.DataFrame.from_dict(gp, orient="index", columns=[column_name]).sort_index()
+
+        if excluded_periods is not None:
+            gp_pd = drop_periods_from_df(gp_pd, excluded_periods)
 
         return gp_pd
 
@@ -133,8 +143,7 @@ class EnergyPlanner:
     def plan_car_charging(self,
                           departure: datetime = None,
                           hours_needed: float = None,
-                          max_cost: float = None,
-                          graph: bool = True) -> [(datetime, datetime)]:
+                          max_cost: float = None) -> [(datetime, datetime)]:
         """
         Find the cheapest set of half-hour segments to charge car. Pass in a departure time
         (or will assume you want to depart at the end of the data available from energy API).
@@ -144,7 +153,6 @@ class EnergyPlanner:
         :param departure: Target departure time. If not provided, will use end time of price data returned by API.
         :param hours_needed: Hours of charging wanted. If not provided, will use Tesla API to calculate based on SOC.
         :param max_cost: Don't pay more than this per kWh.
-        :param graph: Show a graph?
         :return:
         """
 
@@ -171,11 +179,5 @@ class EnergyPlanner:
         target_times = ep_pd.sort_values(by='price')[:periods].sort_index().index
 
         charging_periods = find_contiguous_periods(target_times)
-
-        if graph:
-            show_plot(ep=ep,
-                      starts_and_stops=charging_periods,
-                      show_now_marker=True, end_marker=departure
-                      )
 
         return charging_periods

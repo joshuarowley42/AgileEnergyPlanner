@@ -42,7 +42,7 @@ def tesla_stop_charging():
 
 @app.task
 def daily_user_notification():
-    notify_users_of_prices(hours=3, show_graph=False)
+    notify_users_of_prices(hours=3)
 
 
 @app.on_after_configure.connect

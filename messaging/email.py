@@ -1,4 +1,4 @@
-import os
+import logging
 
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, Attachment, FileName, FileType, FileContent, Disposition, ContentId
@@ -7,7 +7,9 @@ import base64
 from config import *
 
 
-def send_email(message: str, subject, png=None):
+def send_email(message: str,
+               subject: str,
+               png: bytes = None) -> None:
 
     message = message.replace("\n", "<br>")
     html = f'''
@@ -39,8 +41,5 @@ def send_email(message: str, subject, png=None):
     try:
         sg = SendGridAPIClient(SENDGRID_API_KEY)
         response = sg.send(message)
-        print(response.status_code)
-        print(response.body)
-        print(response.headers)
     except Exception as e:
-        print(e)
+        logging.error(f"Could not send email: {e}")
