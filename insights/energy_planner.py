@@ -21,10 +21,12 @@ class EnergyPlanner:
         return self.energy_provider.get_elec_price(start_time)
 
     def ep_from_now_df(self,
-                       excluded_periods: (datetime, datetime) = None) -> pandas.DataFrame:
+                       excluded_periods: (datetime, datetime) = None,
+                       column_name: str = 'electricity price') -> pandas.DataFrame:
 
-        ep = self.ep_from_now
-        ep_pd = pandas.DataFrame.from_dict(ep, orient="index", columns=['price']).sort_index()
+        start_time = start_of_current_period()
+        ep = self.energy_provider.get_elec_price(start_time)
+        ep_pd = pandas.DataFrame.from_dict(ep, orient="index", columns=[column_name]).sort_index()
 
         if excluded_periods is not None:
             periods_to_drop = []
@@ -34,6 +36,16 @@ class EnergyPlanner:
             ep_pd = ep_pd.drop(index=periods_to_drop)
 
         return ep_pd
+
+    def gp_from_now_df(self,
+                       excluded_periods: (datetime, datetime) = None,
+                       column_name: str = 'gas price') -> pandas.DataFrame:
+
+        start_time = start_of_current_period()
+        gp = self.energy_provider.get_gas_price(start_time)
+        gp_pd = pandas.DataFrame.from_dict(gp, orient="index", columns=[column_name]).sort_index()
+
+        return gp_pd
 
     @property
     def tomorrows_data_available(self) -> bool:
@@ -46,8 +58,8 @@ class EnergyPlanner:
         :return: bool
         """
         now = datetime.now(tz=timezone.utc)
-        prices_dict = self.ep_from_now
-        last_time = max(prices_dict.keys())
+        prices_dict = self.ep_from_now_df()
+        last_time = max(prices_dict.index)
         if last_time.day > now.day:
             return True
         return False
@@ -143,8 +155,7 @@ class EnergyPlanner:
             assert hours_needed * 2 % 1 == 0, "smallest increment of hours is 0.5"
             periods = int(hours_needed * 2)
 
-        ep = self.ep_from_now
-        ep_pd = pandas.DataFrame.from_dict(ep, orient="index", columns=['price']).sort_index()
+        ep_pd = self.ep_from_now_df()
         data_end = max(ep_pd.index)
 
         if departure is not None:

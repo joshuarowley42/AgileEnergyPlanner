@@ -58,6 +58,11 @@ class OctopusClient(OctopusAPIClient):
         """
         now = datetime.now(tz=timezone.utc)
 
+        # We will never have more data than this
+        if start_time > now.replace(hour=21, minute=30,
+                                    second=0, microsecond=0) + timedelta(days=1):
+            return {}
+
         # Before 1600 (UK) - we know we won't have data for anything beyond 2200 (UTC) tonight.
         if now.astimezone().hour < 16 and start_time > now.replace(hour=21, minute=30,
                                                                    second=0, microsecond=0):

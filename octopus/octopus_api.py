@@ -1,3 +1,4 @@
+import logging
 
 import requests
 from requests.auth import HTTPBasicAuth
@@ -64,6 +65,7 @@ class OctopusAPIClient:
             params["period_to"] = datetime.strftime(end_time, "%Y-%m-%dT%H:%M:%S%z")
 
         while url is not None:
+            logging.info(f"Octopus API request: {url}")
             r = requests.get(url, params=params)
             response = r.json()
             prices += response.get('results', [])

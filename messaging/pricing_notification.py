@@ -22,7 +22,7 @@ planner = EnergyPlanner(energy_provider)
 logging.getLogger().setLevel(logging.INFO)
 
 
-def notify_users_of_prices(hours=3, show_graph=False):
+def notify_users_of_prices(hours=3):
     """ User notification for best and worst prices.
 
     This function finds the best, and worst, times to use energy and also gives some
@@ -71,11 +71,6 @@ def notify_users_of_prices(hours=3, show_graph=False):
                     f"Average outside peak: {average_excluding_peak:.2f}p/kWh\n"
 
     logging.info(price_message)
-
-    if show_graph:
-        planner.plot_future_prices(starts_and_stops=best_starts_and_stops + peak_starts_and_stops)
-        logging.info("Will not send emails with 'show_graph' True.")
-        return None
 
     # Handy to have this outside the below if so that you can inspect the png.
     png = planner.plot_future_prices(starts_and_stops=best_starts_and_stops + peak_starts_and_stops,
