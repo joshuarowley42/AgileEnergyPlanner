@@ -1,10 +1,9 @@
 import logging
 
 from celery import Celery
+from celery.schedules import crontab
 
 from config import *
-from octopus import OctopusClient
-from insights import EnergyPlanner, EnergyUsage
 from messaging import notify_users_of_prices
 from tesla import TeslaAPIClient
 
@@ -19,18 +18,6 @@ app = Celery('tasks.tasks',
 # put this in place). I believe this is a redis-specific issue and isn't a problem with
 # RabbitMQ.
 app.conf.broker_transport_options = {'visibility_timeout': 3600*24}
-
-
-# Bring in our apps
-energy_provider = OctopusClient(username=OCTOPUS_USERNAME,
-                                zone=OCTOPUS_ZONE,
-                                e_mpan=OCTOPUS_ELEC_MPAN,
-                                e_msn=OCTOPUS_ELEC_MSN,
-                                g_mprn=OCTOPUS_GAS_MPRN,
-                                g_msn=OCTOPUS_GAS_MSN)
-
-planner = EnergyPlanner(energy_provider)    # Don't need a car in the planner
-usage = EnergyUsage(energy_provider)
 
 
 def get_tesla():
@@ -57,3 +44,11 @@ def tesla_stop_charging():
 def daily_user_notification():
     notify_users_of_prices(hours=3, show_graph=False)
 
+
+@app.on_after_configure.connect
+def setup_periodic_tasks(sender, **kwargs):
+    # Executes every 10 minutes from 1500 UTC (1600 BST) to 2000 UTC (2100 BST)
+    sender.add_periodic_task(
+        crontab(hour='15-20', minute='*/10'),
+        daily_user_notification.s,
+    )
