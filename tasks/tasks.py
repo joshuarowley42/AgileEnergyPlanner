@@ -50,5 +50,5 @@ def setup_periodic_tasks(sender, **kwargs):
     # Executes every 10 minutes from 1500 UTC (1600 BST) to 2000 UTC (2100 BST)
     sender.add_periodic_task(
         crontab(hour='15-20', minute='*/10'),
-        daily_user_notification.s,
+        daily_user_notification.s(),
     )
