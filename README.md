@@ -13,14 +13,14 @@ and even if I did - it would hardly be worth the hassle!)
 The project is nascent and intended for my personal use, but I am putting it online in case anyone
 wants to make use of it, or join in on the development. It comes with no warranty, or guarantee of any updates!
 
-My plan is to put this on an Raspberry Pi with a relay shield to control the hot-water
+My plan is to put this on a Raspberry Pi with a relay shield to control the hot-water
 cylinder and heating at home too.
 
 
 ### Features
 
 * Start & Stop Tesla Charging (via API)
-* Tell users when good times to use appliances (via SMS (coming soon..))
+* Tell users when good times to use appliances (via Email (SMS coming soon))
 * Show historical price data and usage
 
 
@@ -35,7 +35,11 @@ Detailed install instructions are not available. Reach out if you want to run it
 
 In summary though:
 
-* Install the requirements
+* Requires Python 3.9 (to merge dictionaries `{}|{}`)
+  * `sudo apt install python3.9 python3.9-dev`
+* Install the requirements (in your venv)
+  * `pip install -r requirements.txt`
 * Install Redis Server (for celery)
-* Note I developed on a Mac, and haven't done the Rpi bit yet, so probably will need mods before running on another OS.
+  * `sudo apt install redis`
+* Note I developed on a Mac, and have started to put on an Rpi, but probably will need mods before running properly. 
 

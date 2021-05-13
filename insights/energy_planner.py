@@ -12,7 +12,7 @@ class EnergyPlanner:
         self.car = car
 
     @property
-    def ep_from_now(self):
+    def ep_from_now(self) -> dict:
         """
         Get electricity prices starting from "now" - start of the current-half-hour period..
         """
@@ -20,8 +20,23 @@ class EnergyPlanner:
         start_time = start_of_current_period()
         return self.energy_provider.get_elec_price(start_time)
 
+    def ep_from_now_df(self,
+                       excluded_periods: (datetime, datetime) = None) -> pandas.DataFrame:
+
+        ep = self.ep_from_now
+        ep_pd = pandas.DataFrame.from_dict(ep, orient="index", columns=['price']).sort_index()
+
+        if excluded_periods is not None:
+            periods_to_drop = []
+            for period in excluded_periods:
+                (start, stop) = period
+                periods_to_drop += list(ep_pd[start:stop - timedelta(minutes=30)].index)
+            ep_pd = ep_pd.drop(index=periods_to_drop)
+
+        return ep_pd
+
     @property
-    def tomorrows_data_available(self):
+    def tomorrows_data_available(self) -> bool:
         """
         Check if data is available for tomorrow.
 
@@ -37,7 +52,8 @@ class EnergyPlanner:
             return True
         return False
 
-    def average_price(self, excluded_periods=None):
+    def average_price(self,
+                      excluded_periods: (datetime, datetime) = None) -> float:
         """
         Get average electricity prices from "now". Optionally exclude some periods from the averages.
 
@@ -45,15 +61,8 @@ class EnergyPlanner:
         :return:
         """
 
-        ep = self.ep_from_now
-        ep_pd = pandas.DataFrame.from_dict(ep, orient="index", columns=['price']).sort_index()
+        ep_pd = self.ep_from_now_df(excluded_periods)
 
-        if excluded_periods is not None:
-            periods_to_drop = []
-            for period in excluded_periods:
-                (start, stop) = period
-                periods_to_drop += list(ep_pd[start:stop - timedelta(minutes=30)].index)
-            ep_pd = ep_pd.drop(index=periods_to_drop)
         return ep_pd.mean()[0]
 
     def plot_future_prices(self, **kwargs):
@@ -68,7 +77,8 @@ class EnergyPlanner:
 
     def plan_usage_periods(self,
                            hours: float = 2,
-                           mode: str = "best"):
+                           mode: str = "best",
+                           excluded_periods: (datetime, datetime) = None) -> (datetime, datetime):
         """
         For a given length of time - find contiguous periods that have the
         lowest "best" (or highest "peak") average price.
@@ -76,8 +86,7 @@ class EnergyPlanner:
         Useful to plan times to use (or not use) energy. Clearly assumes equal
         usage over the period which may well not be the case.
 
-        ToDo: Refactor to use a rolling window. Would be neater.
-
+        :param excluded_periods: (start, stop) periods to exclude from the averages
         :param hours: Size of the window
         :param mode: "best" or "peak"
         :return: (start, stop), mean price
@@ -88,44 +97,32 @@ class EnergyPlanner:
 
         assert mode in ["best", "peak"], "'mode' must be 'best' or 'peak'"
 
-        ep = self.ep_from_now
-        ep_pd = pandas.DataFrame.from_dict(ep, orient="index", columns=['price']).sort_index()
-        data_end = max(ep_pd.index)
+        ep_pd = self.ep_from_now_df(excluded_periods)
 
-        cheapest_start = None
-        lowest_price = None
-        dearest_start = None
-        highest_price = None
+        window = ep_pd.rolling(timedelta(minutes=30) * periods_needed, min_periods=periods_needed).mean()
+        # THe window is backwards looking, so the result will be for the start of the last period.
+        # Hence, usage should stop 30m later, start calculated based on end.
+        cheapest = window.min()[0]
+        cheapest_stop = window.idxmin()[0] + timedelta(minutes=30)
+        cheapest_start = cheapest_stop - timedelta(minutes=30) * periods_needed
 
-        latest_start = data_end - timedelta(minutes=30 * (periods_needed - 1))
-        period_start = ep_pd.index[0]
-        while period_start <= latest_start:
-            prices = ep_pd[period_start:period_start + timedelta(minutes=30 * periods_needed - 1)].sum()[
-                         0] / periods_needed
-
-            if lowest_price is None or prices < lowest_price:
-                lowest_price = prices
-                cheapest_start = period_start
-
-            if highest_price is None or prices > highest_price:
-                highest_price = prices
-                dearest_start = period_start
-
-            period_start += timedelta(minutes=30)
+        dearest = window.max()[0]
+        dearest_stop = window.idxmax()[0] + timedelta(minutes=30)
+        dearest_start = dearest_stop - timedelta(minutes=30) * periods_needed
 
         if mode == "best":
-            starts_stops = [(cheapest_start, cheapest_start + timedelta(minutes=30 * periods_needed))]
-            return starts_stops, lowest_price
+            starts_stops = [(cheapest_start, cheapest_stop)]
+            return starts_stops, cheapest
 
         elif mode == "peak":
-            starts_stops = [(dearest_start, dearest_start + timedelta(minutes=30 * periods_needed))]
-            return starts_stops, highest_price
+            starts_stops = [(dearest_start, dearest_stop)]
+            return starts_stops, dearest
 
     def plan_car_charging(self,
                           departure: datetime = None,
                           hours_needed: float = None,
                           max_cost: float = None,
-                          graph: bool = True):
+                          graph: bool = True) -> [(datetime, datetime)]:
         """
         Find the cheapest set of half-hour segments to charge car. Pass in a departure time
         (or will assume you want to depart at the end of the data available from energy API).
