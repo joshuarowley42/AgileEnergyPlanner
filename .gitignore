@@ -15,3 +15,4 @@ cache.json
 figure.png
 *.sqlite
 celerybeat-schedule
+log
