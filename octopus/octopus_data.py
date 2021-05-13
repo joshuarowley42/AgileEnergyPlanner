@@ -56,19 +56,12 @@ class OctopusClient(OctopusAPIClient):
         This function adds a little contextual knowledge about what data
         is likely to be available before just heading off to get it blindly.
         """
-
         now = datetime.now(tz=timezone.utc)
-        if start_time.day < now.astimezone().day:
-            # There will surely be historical data available
-            return super().get_elec_price(start_time=start_time,
-                                          end_time=end_time)
 
-        if start_time.day > now.astimezone().day:
-            # Already have tomorrow's data
+        # Before 1600 (UK) - we know we won't have data for anything beyond 2200 (UTC) tonight.
+        if now.astimezone().hour < 16 and start_time > now.replace(hour=21, minute=30,
+                                                                   second=0, microsecond=0):
             return {}
 
-        if now.astimezone().hour >= 16:
-            # After 1600, we might expect tomorrow's prices.
-            # Given that we don't already have that data, go and check for it!
-            return super().get_elec_price(start_time=start_time,
-                                          end_time=end_time)
+        return super().get_elec_price(start_time=start_time,
+                                      end_time=end_time)
