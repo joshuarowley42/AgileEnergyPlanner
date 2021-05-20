@@ -1,5 +1,7 @@
 from datetime import datetime, timezone, timedelta
 
+from config import *
+
 from .octopus_api import OctopusAPIClient
 from data_store import EnergyPrices, session
 
@@ -64,8 +66,8 @@ class OctopusClient(OctopusAPIClient):
             return {}
 
         # Before 1600 (UK) - we know we won't have data for anything beyond 2200 (UTC) tonight.
-        if now.astimezone().hour < 16 and start_time > now.replace(hour=21, minute=30,
-                                                                   second=0, microsecond=0):
+        if now.astimezone(TIMEZONE).hour < 16 and start_time > now.replace(hour=21, minute=30,
+                                                                           second=0, microsecond=0):
             return {}
 
         return super().get_elec_price(start_time=start_time,

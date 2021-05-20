@@ -18,7 +18,10 @@ def drop_periods_from_df(df: pandas.DataFrame,
 
 
 class EnergyPlanner:
-    def __init__(self, energy_provider, car=None):
+    def __init__(self,
+                 energy_provider,
+                 car=None):
+
         self.energy_provider = energy_provider
         self.car = car
 
@@ -176,7 +179,7 @@ class EnergyPlanner:
         if max_cost is not None:
             ep_pd = ep_pd.where(ep_pd <= max_cost).dropna()
 
-        target_times = ep_pd.sort_values(by='price')[:periods].sort_index().index
+        target_times = ep_pd.sort_values(by='electricity price')[:periods].sort_index().index
 
         charging_periods = find_contiguous_periods(target_times)
 

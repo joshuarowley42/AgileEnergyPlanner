@@ -76,7 +76,7 @@ def notify_users_of_prices(hours=3):
                                      return_file=True)
 
     if not DEV_MODE:
-        now = format_short_date(start_of_current_period().astimezone())
+        now = format_short_date(start_of_current_period().astimezone(TIMEZONE))
         send_email(subject=f"Electricity Prices - From {now}",
                    message=price_message, png=png)
 
