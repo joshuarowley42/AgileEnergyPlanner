@@ -71,7 +71,8 @@ def plan_charging(departure_hour,
 
         period = CarChargingPeriod(start_time=start,
                                    stop_time=stop,
-                                   scheduled=scheduled)
+                                   scheduled=scheduled,
+                                   parent_id=charge_session.id)
         session.add(period)
     session.commit()
 

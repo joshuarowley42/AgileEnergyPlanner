@@ -7,6 +7,12 @@ from config import *
 from messaging import notify_users_of_prices
 from tesla import TeslaAPIClient
 
+from gpiozero import DigitalOutputDevice
+from gpiozero.pins.pigpio import PiGPIOFactory
+
+hot_water_relay = DigitalOutputDevice(PI_HEATER_PIN, pin_factory=PiGPIOFactory(host=PI_IP))
+
+
 # Configure Celery
 app = Celery('tasks.tasks',
              broker='redis://localhost',
@@ -38,6 +44,16 @@ def tesla_start_charging():
 def tesla_stop_charging():
     t = get_tesla()
     t.stop_charging()
+
+
+@app.task
+def water_start_heating():
+    hot_water_relay.on()
+
+
+@app.task
+def water_stop_heating():
+    hot_water_relay.off()
 
 
 @app.task

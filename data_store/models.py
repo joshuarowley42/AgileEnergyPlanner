@@ -49,6 +49,10 @@ class CarChargingSession(Base):
     children = relationship("CarChargingPeriod",
                             cascade="all, delete, delete-orphan")
 
+    def as_dict(self):
+        return {"id": self.id,
+                "departure": self.departure.replace(tzinfo=timezone.utc)}
+
 
 class CarChargingPeriod(Base):
     __tablename__ = 'car_charging_period'
@@ -59,3 +63,10 @@ class CarChargingPeriod(Base):
     scheduled = Column(Boolean)
 
     parent_id = Column(Integer, ForeignKey('car_charging_session.id'))
+
+    def as_dict(self):
+        return {"id": self.id,
+                "start_time": self.start_time.replace(tzinfo=timezone.utc),
+                "stop_time": self.stop_time.replace(tzinfo=timezone.utc),
+                "scheduled": self.scheduled,
+                "parent": self.parent_id}
