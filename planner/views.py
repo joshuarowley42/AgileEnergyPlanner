@@ -8,19 +8,17 @@ from .models import CarChargingSession
 from .insights.data_tools import format_short_date, format_short_date_range, start_of_current_period
 from .insights.visualisation_tools import plot_html
 
-
-
-from . import planner, energy_provider
+from .common import energy_planner
 
 
 def index(request):
     # Get Gas and Electric Prices
-    ep_pd = planner.ep_df()
-    gp_pd = planner.gp_from_now_df()
+    ep_pd = energy_planner.ep_df()
+    gp_pd = energy_planner.gp_from_now_df()
 
     # Get best stop & start times for Electric usage.
-    best_starts_and_stops, best_price = planner.plan_usage_periods(hours=3, mode="best")
-    peak_starts_and_stops, peak_price = planner.plan_usage_periods(hours=3, mode="peak")
+    best_starts_and_stops, best_price = energy_planner.plan_usage_periods(hours=3, mode="best")
+    peak_starts_and_stops, peak_price = energy_planner.plan_usage_periods(hours=3, mode="peak")
 
     # Get an HTML graph of the same
 
@@ -28,8 +26,8 @@ def index(request):
     now_time = format_short_date(ep_pd.index[0])
     best_time = format_short_date_range(best_starts_and_stops[0])
     peak_time = format_short_date_range(peak_starts_and_stops[0])
-    average = planner.average_price()
-    average_excluding_peak = planner.average_price(excluded_periods=peak_starts_and_stops)
+    average = energy_planner.average_price()
+    average_excluding_peak = energy_planner.average_price(excluded_periods=peak_starts_and_stops)
 
     graph = plot_html([ep_pd, gp_pd], starts_and_stops=best_starts_and_stops + peak_starts_and_stops)
     price_data = [("Current Price", now_time, f"{now_ep:.2f}"),
@@ -55,7 +53,7 @@ def plan_charge(request):
     max_cost = int(request.GET.get("max_cost", 15))
 
     now = datetime.now(tz=get_localzone())
-    ep_pd = planner.ep_df()
+    ep_pd = energy_planner.ep_df()
 
     departure = now.replace(hour=departure_hour,
                             minute=0,
@@ -64,9 +62,9 @@ def plan_charge(request):
     if now.hour > departure_hour:
         departure = departure + timedelta(days=1)
 
-    charge_session = planner.plan_car_charging(departure=departure,
-                                               hours_needed=hours_needed,
-                                               max_cost=max_cost)
+    charge_session = energy_planner.plan_car_charging(departure=departure,
+                                                      hours_needed=hours_needed,
+                                                      max_cost=max_cost)
     starts_and_stops = [(s.start_time, s.stop_time) for s in charge_session.carchargingperiod_set.all()]
 
     graph = plot_html([ep_pd], starts_and_stops=starts_and_stops, end_marker=departure)
@@ -103,7 +101,7 @@ def show_charge(request, session_id):
 
     start_time = min(starts_and_stops[0][0], start_of_current_period())
 
-    ep_pd = planner.ep_df(start_time=start_time)
+    ep_pd = energy_planner.ep_df(start_time=start_time)
     graph = plot_html([ep_pd], starts_and_stops=starts_and_stops, end_marker=charge_session.departure)
 
     return render(request, 'show_charge.html', context={"graph": graph,

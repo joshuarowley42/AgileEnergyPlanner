@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timezone
 from config import *
 
-from .. import planner
+from ..common import energy_planner
 from ..insights.data_tools import format_short_date, format_short_date_range, start_of_current_period
 from ..insights.visualisation_tools import plot_svg
 from ..models import EmailLog
@@ -29,35 +29,35 @@ def notify_users_of_prices(hours=3):
     now = datetime.now(tz=timezone.utc)
     start_of_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
-    r = EmailLog.objects.filter(time_gte=start_of_today).first()
+    r = EmailLog.objects.filter(time__gte=start_of_today).first()
 
     if r:
         logging.info("Email already sent today. Skipping")
         return False
 
-    if not planner.tomorrows_data_available:
+    if not energy_planner.tomorrows_data_available:
         logging.info("Data not yet available for tomorrow. Skipping")
         return False
 
-    ep_pd = planner.ep_df()
-    gp_pd = planner.gp_from_now_df()
+    ep_pd = energy_planner.ep_df()
+    gp_pd = energy_planner.gp_from_now_df()
 
     # Get best stop & start times for Electric usage.
-    best_starts_and_stops, best_price = planner.plan_usage_periods(hours=3, mode="best")
-    peak_starts_and_stops, peak_price = planner.plan_usage_periods(hours=3, mode="peak")
+    best_starts_and_stops, best_price = energy_planner.plan_usage_periods(hours=3, mode="best")
+    peak_starts_and_stops, peak_price = energy_planner.plan_usage_periods(hours=3, mode="peak")
 
     # Get an HTML graph of the same
 
     best_time = format_short_date_range(best_starts_and_stops[0])
     peak_time = format_short_date_range(peak_starts_and_stops[0])
-    average = planner.average_price()
-    average_excluding_peak = planner.average_price(excluded_periods=peak_starts_and_stops)
+    average = energy_planner.average_price()
+    average_excluding_peak = energy_planner.average_price(excluded_periods=peak_starts_and_stops)
 
     svg = plot_svg([ep_pd, gp_pd], starts_and_stops=best_starts_and_stops + peak_starts_and_stops)
-    price_message =  f"Best 3h {best_time} - {best_price:.2f}" \
-                     f"Peak 3h {peak_time} - {peak_price:.2f}" \
-                     f"Average all-day {average:.2f}" \
-                     f"Average outside peak {average_excluding_peak:.2f}"
+    price_message = f"Best 3h {best_time} - {best_price:.2f}" \
+                    f"Peak 3h {peak_time} - {peak_price:.2f}" \
+                    f"Average all-day {average:.2f}" \
+                    f"Average outside peak {average_excluding_peak:.2f}"
 
     if not DEV_MODE:
         now = format_short_date(start_of_current_period().astimezone(TIMEZONE))
