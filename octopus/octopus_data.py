@@ -3,18 +3,14 @@ from datetime import datetime, timezone, timedelta
 from config import *
 
 from .octopus_api import OctopusAPIClient
-from data_store import EnergyPrices, session
+from planner.models import EnergyPrices
 
 
 class OctopusClient(OctopusAPIClient):
     def get_elec_price(self, start_time, end_time=None):
+        r = EnergyPrices.objects.filter(time__gte=start_time).order_by('time')
 
-        r = session.query(EnergyPrices)\
-            .where(EnergyPrices.time >= start_time)\
-            .order_by(EnergyPrices.time.asc())\
-            .all()
-
-        prices_dict = {row.time_utc: row.price for row in r}
+        prices_dict = {row.time: row.price for row in r}
 
         new_prices = {}
 
@@ -24,9 +20,9 @@ class OctopusClient(OctopusAPIClient):
             # Missing data in the middle
             periods = sorted(prices_dict.keys())
             for i in range(len(periods) - 1):
-                if periods[i] + timedelta(minutes=30) != periods[i+1]:
+                if periods[i] + timedelta(minutes=30) != periods[i + 1]:
                     new_prices |= self.check_for_new_prices(start_time=periods[i] + timedelta(minutes=30),
-                                                            end_time=periods[i+1])
+                                                            end_time=periods[i + 1])
 
             # Missing data at the start
             earliest_data = min(prices_dict.keys())
@@ -44,11 +40,10 @@ class OctopusClient(OctopusAPIClient):
                                                    end_time=end_time)
 
         if new_prices:
-            for time in new_prices:
-                prices_dict[time] = new_prices[time]
-                session.add(EnergyPrices(time=time,
-                                         price=new_prices[time]))
-            session.commit()
+            for period_start in new_prices:
+                prices_dict[period_start] = new_prices[period_start]
+                EnergyPrices(time=period_start,
+                             price=new_prices[period_start]).save()
 
         return prices_dict
 

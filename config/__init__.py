@@ -9,6 +9,8 @@ Just a bunch of variables used to configure things.
 
 """
 
+# ToDo: Burn with fire. Use Django's config.
+
 from datetime import time
 import pytz
 

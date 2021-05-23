@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block header_content %}
+    <script src="https://cdn.bokeh.org/bokeh/release/bokeh-2.3.2.min.js"></script>
+    <script src="https://cdn.bokeh.org/bokeh/release/bokeh-widgets-2.3.2.min.js"></script>
+    <script src="https://cdn.bokeh.org/bokeh/release/bokeh-tables-2.3.2.min.js"></script>
+    {{ graph.0|safe }}
+{% endblock %}
+
+{% block body_content %}
+    <div class="row mb-2">
+        <div class="col-md-8">
+            {{ graph.1|safe }}
+        </div>
+        <div class="col-md-4">
+            <div class="row">
+                <h2>1) Plan Charge</h2>
+                <form action="" method="GET">
+                    <div class="form-group">
+                        <label for="input_departure_hour">Departure Hour (0-23h)</label>
+                        <input type="text" class="form-control"
+                               id="input_departure_hour"
+                               name="departure_hour"
+                               value="{{ session_config.departure_hour }}">
+                        <small id="departure_time_help" class="form-text text-muted">Target departure hour.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="input_hours_needed">Hours Needed (h)</label>
+                        <input type="text" class="form-control"
+                               id="input_hours_needed"
+                               name="hours_needed"
+                               value="{{ session_config.hours_needed }}">
+                        <small id="hours_needed_help" class="form-text text-muted">Hours of charging
+                            required.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="input_max_cost">Max Cost (p/kWh)</label>
+                        <input type="text" class="form-control"
+                               id="input_max_cost"
+                               name="max_cost"
+                               value="{{ session_config.max_cost }}">
+                        <small id="departure_time_help" class="form-text text-muted">Maximum to pay.</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Plan</button>
+                </form>
+            </div>
+
+            <div class="row">
+                <h2>2) Schedule Charge</h2>
+                <p>Departing: {{ charge_session.departure_formatted }}</p>
+                <p>Average cost: {{ charge_session.average_cost|floatformat:2 }}p/kWh</p>
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th scope="col">From</th>
+                        <th scope="col">To</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for child in charge_session.children %}
+                        <tr>
+                            <td>{{ child.start_time_formatted }}</td>
+                            <td>{{ child.stop_time_formatted }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                <p><a href="/charge/schedule/{{ charge_session.id }}"
+                      class="btn btn-success">Schedule</a></p>
+            </div>
+
+        </div>
+    </div>
+
+{% endblock %}
+

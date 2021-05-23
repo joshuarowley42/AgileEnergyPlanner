@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block header_content %}
+    <script src="https://cdn.bokeh.org/bokeh/release/bokeh-2.3.2.min.js"></script>
+    <script src="https://cdn.bokeh.org/bokeh/release/bokeh-widgets-2.3.2.min.js"></script>
+    <script src="https://cdn.bokeh.org/bokeh/release/bokeh-tables-2.3.2.min.js"></script>
+    {{ graph.0|safe }}
+{% endblock %}
+
+{% block body_content %}
+    <table class="table">
+        <thead>
+        <tr>
+            <th scope="col">Data</th>
+            <th scope="col">When</th>
+            <th scope="col">Price (p/kWh)</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for price_datum in price_data %}
+        <tr>
+            <th scope="row">{{ price_datum.0 }}</th>
+            <td>{{ price_datum.1 }}</td>
+            <td>{{ price_datum.2 }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {{ graph.1|safe }}
+{% endblock %}
+
