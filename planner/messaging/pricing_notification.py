@@ -4,7 +4,7 @@ from config import *
 
 from ..common import energy_planner
 from ..insights.data_tools import format_short_date, format_short_date_range, start_of_current_period
-from ..insights.visualisation_tools import plot_svg
+from ..insights.visualisation_tools import plot_png
 from ..models import EmailLog
 from .email import send_email
 
@@ -53,7 +53,7 @@ def notify_users_of_prices(hours=3):
     average = energy_planner.average_price()
     average_excluding_peak = energy_planner.average_price(excluded_periods=peak_starts_and_stops)
 
-    svg = plot_svg([ep_pd, gp_pd], starts_and_stops=best_starts_and_stops + peak_starts_and_stops)
+    svg = plot_png([ep_pd, gp_pd], starts_and_stops=best_starts_and_stops + peak_starts_and_stops)
     price_message = f"Best 3h {best_time} - {best_price:.2f}" \
                     f"Peak 3h {peak_time} - {peak_price:.2f}" \
                     f"Average all-day {average:.2f}" \
