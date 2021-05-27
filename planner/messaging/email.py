@@ -9,7 +9,7 @@ from config import *
 
 def send_email(message: str,
                subject: str,
-               svg: bytes = None) -> None:
+               png: bytes = None) -> None:
 
     message = message.replace("\n", "<br>")
     html = f'''
@@ -27,12 +27,12 @@ def send_email(message: str,
         subject=subject,
         html_content=html)
 
-    if svg is not None:
-        encoded_file = base64.b64encode(svg).decode()
+    if png is not None:
+        encoded_file = base64.b64encode(png).decode()
         attached_file = Attachment(
             FileContent(encoded_file),
-            FileName('price_graph.svg'),
-            FileType('image/svg'),
+            FileName('price_graph.png'),
+            FileType('image/png'),
             Disposition('inline'),
             ContentId('price_graph')
         )

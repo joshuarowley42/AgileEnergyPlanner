@@ -11,7 +11,7 @@ from .email import send_email
 logging.getLogger().setLevel(logging.INFO)
 
 
-def notify_users_of_prices(hours=3):
+def notify_users_of_prices(test_mode: bool = False):
     """ User notification for best and worst prices.
 
     This function finds the best, and worst, times to use energy and also gives some
@@ -23,7 +23,8 @@ def notify_users_of_prices(hours=3):
     It will optionally show an interactive graph - that will prevent the email from
     being sent.
 
-    :param hours: The size of the "best" and "peak" slots.
+    :param test_mode: boolean that puts the function in test_mode where it returns email
+    components.
     :return: None
     """
     now = datetime.now(tz=timezone.utc)
@@ -53,16 +54,19 @@ def notify_users_of_prices(hours=3):
     average = energy_planner.average_price()
     average_excluding_peak = energy_planner.average_price(excluded_periods=peak_starts_and_stops)
 
-    svg = plot_png([ep_pd, gp_pd], starts_and_stops=best_starts_and_stops + peak_starts_and_stops)
-    price_message = f"Best 3h {best_time} - {best_price:.2f}" \
-                    f"Peak 3h {peak_time} - {peak_price:.2f}" \
-                    f"Average all-day {average:.2f}" \
-                    f"Average outside peak {average_excluding_peak:.2f}"
+    png = plot_png([ep_pd, gp_pd], starts_and_stops=best_starts_and_stops + peak_starts_and_stops)
+    price_message = f"Best 3h {best_time} - {best_price:.2f}p/kWh" \
+                    f"Peak 3h {peak_time} - {peak_price:.2f}p/kWh" \
+                    f"Average all-day {average:.2f}p/kWh" \
+                    f"Average outside peak {average_excluding_peak:.2f}p/kWh"
+
+    if test_mode:
+        return png, price_message
 
     if not DEV_MODE:
         now = format_short_date(start_of_current_period().astimezone(TIMEZONE))
         send_email(subject=f"Electricity Prices - From {now}",
-                   message=price_message, svg=svg)
+                   message=price_message, png=png)
 
         # Log the email was sent so we don't send it again when this function gets called again.
         EmailLog(time=datetime.now(tz=timezone.utc)).save()

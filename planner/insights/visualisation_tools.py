@@ -7,12 +7,10 @@ import matplotlib.dates as mdates
 from matplotlib.ticker import AutoMinorLocator
 
 from bokeh.plotting import figure
-from bokeh.io import export_svg
 from bokeh.models import Span
 from bokeh.embed import components
 
-from config import *
-
+from planner.insights.data_tools import format_short_date_range
 
 def plot_html(dfs: list[pandas.DataFrame],
               square_lines: bool = True,
@@ -70,7 +68,9 @@ def plot_png(dfs: list[pandas.DataFrame],
              starts_and_stops: list[tuple[datetime, datetime]] = None,
              ):
 
-    return_file = False
+    # Debugging variable that allows one to see an interactive matplotlib plot.
+    # For normal behaviour, leave as True.
+    return_file = True
 
     line_colours = ["b-", "y-", "r-", "g-"]
 
@@ -102,7 +102,13 @@ def plot_png(dfs: list[pandas.DataFrame],
     # ToDo: This is horribly repetitive and needs tidying up.
 
     i = 0
+    min_date = None
+    max_date = None
     for df in dfs:
+        if min_date is None or min_date > df.index.min():
+            min_date = df.index.min()
+        if max_date is None or max_date < df.index.max():
+            max_date = df.index.max()
         if square_lines:
             endpoints = pandas.DataFrame(df.values,
                                          index=df.index + timedelta(minutes=29, seconds=59),
@@ -111,7 +117,8 @@ def plot_png(dfs: list[pandas.DataFrame],
 
         plt.plot(df.index.map(lambda x: x.astimezone(get_localzone())),
                  df[df.columns[0]].values.tolist(),
-                 line_colours[i])
+                 line_colours[i],
+                 label=df.columns[0])
         i += 1
 
         ax = plt.gca()
@@ -119,11 +126,18 @@ def plot_png(dfs: list[pandas.DataFrame],
         ax.grid(which='minor')
 
     ax = plt.gca()
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M', tz=get_localzone()))
-    ax.xaxis.set_minor_locator(AutoMinorLocator(n=3))
+    ax.xaxis.set_major_locator(mdates.DayLocator())
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%a %d', tz=get_localzone()))
+    ax.xaxis.set_minor_locator(mdates.HourLocator(interval=3))
+    ax.xaxis.set_minor_formatter(mdates.DateFormatter('%H', tz=get_localzone()))
     ax.tick_params(which='both', width=1)
-    ax.tick_params(which='major', length=7)
-    ax.tick_params(which='minor', length=4)
+    ax.tick_params(which='major', length=10)
+    ax.tick_params(which='minor', length=2)
+
+    date_range = format_short_date_range((min_date, max_date))
+    plt.title(f"Energy Prices from {date_range}")
+    plt.xlabel("Price (p/kWh)")
+    ax.legend()
 
     if return_file:
         plt.savefig("figure.png")
