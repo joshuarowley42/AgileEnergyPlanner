@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 
+from celery.schedules import crontab
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -125,3 +127,18 @@ STATIC_URL = '/static/'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+CELERY_BROKER_URL = 'redis://localhost'
+CELERY_ENABLE_UTC = True
+CELERY_TIMEZONE = 'utc'
+CELERY_BEAT_SCHEDULE = {'add-every-30-seconds': {
+    'task': 'planner.tasks.daily_user_notification',
+    'schedule': crontab(hour='15-20', minute='*/10'),
+}}
+
+# This 24h timeout means that tasks can be queued (eta set) for up to 24h in the future.
+# In theory the code works just fine without it, but tasks that are due to start outside
+# whatever range is set risk being run multiple times (saw tasks run 10+ times before I
+# put this in place). I believe this is a redis-specific issue and isn't a problem with
+# RabbitMQ.
+CELERY_BROKER_TRANSPORT_OPTIONS = {'visibility_timeout': 3600*24}
