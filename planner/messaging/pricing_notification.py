@@ -55,10 +55,11 @@ def notify_users_of_prices(test_mode: bool = False):
     average_excluding_peak = energy_planner.average_price(excluded_periods=peak_starts_and_stops)
 
     png = plot_png([ep_pd, gp_pd], starts_and_stops=best_starts_and_stops + peak_starts_and_stops)
-    price_message = f"Best 3h {best_time} - {best_price:.2f}p/kWh" \
-                    f"Peak 3h {peak_time} - {peak_price:.2f}p/kWh" \
-                    f"Average all-day {average:.2f}p/kWh" \
-                    f"Average outside peak {average_excluding_peak:.2f}p/kWh"
+    price_message = f"Best 3h {best_time} - {best_price:.2f}p/kWh\n" \
+                    f"Peak 3h {peak_time} - {peak_price:.2f}p/kWh\n" \
+                    f"Average all-day {average:.2f}p/kWh\n" \
+                    f"Average outside peak {average_excluding_peak:.2f}p/kWh\n" \
+                    f"<a href=\"http://192.168.0.2:8000\">Click here</a> to view graph.\n"
 
     if test_mode:
         return png, price_message

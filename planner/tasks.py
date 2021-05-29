@@ -7,8 +7,11 @@ from gpiozero import DigitalOutputDevice
 from gpiozero.pins.pigpio import PiGPIOFactory
 
 from config import *
-hot_water_relay = DigitalOutputDevice(PI_HEATER_PIN, pin_factory=PiGPIOFactory(host=PI_IP))
 
+hot_water_elec = DigitalOutputDevice(PI_ELEC_WATER_HEATER_PIN, pin_factory=PiGPIOFactory(host=PI_IP))
+nest_override = DigitalOutputDevice(PI_NEST_OVERRIDE_PIN, pin_factory=PiGPIOFactory(host=PI_IP))
+hot_water_gas = DigitalOutputDevice(PI_GAS_WATER_HEATER_PIN, pin_factory=PiGPIOFactory(host=PI_IP))
+hot_water_gas.close()
 
 def get_tesla():
     # The connection seems most robust if a new instance of the client is created each time.
@@ -32,12 +35,12 @@ def tesla_stop_charging():
 
 @app.task
 def water_start_heating():
-    hot_water_relay.on()
+    hot_water_elec.on()
 
 
 @app.task
 def water_stop_heating():
-    hot_water_relay.off()
+    hot_water_elec.off()
 
 
 @app.task

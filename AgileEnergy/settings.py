@@ -131,7 +131,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CELERY_BROKER_URL = 'redis://localhost'
 CELERY_ENABLE_UTC = True
 CELERY_TIMEZONE = 'utc'
-CELERY_BEAT_SCHEDULE = {'add-every-30-seconds': {
+CELERY_BEAT_SCHEDULE = {'daily-user-notification': {
     'task': 'planner.tasks.daily_user_notification',
     'schedule': crontab(hour='15-20', minute='*/10'),
 }}

@@ -1,6 +1,7 @@
 from django.test import TestCase
 
 from planner.messaging import notify_users_of_prices
+from planner.common import energy_planner
 from config import DEV_MODE
 
 
@@ -9,6 +10,12 @@ class NotificationEmail(TestCase):
         assert DEV_MODE, "Must be in DEV_MODE, otherwise user will get email"
 
     def test_emails(self):
-        png, price_message = notify_users_of_prices(test_mode=True)
-        self.assertTrue(bool(png))
-        self.assertTrue("Average outside peak" in price_message)
+        response = notify_users_of_prices(test_mode=True)
+
+        if not energy_planner.tomorrows_data_available:
+            # If tomorrows data isn't available, it should be false
+            self.assertFalse(response)
+        else:
+            png, price_message = response
+            self.assertTrue(bool(png))
+            self.assertTrue("Average outside peak" in price_message)
