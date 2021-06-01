@@ -7,7 +7,7 @@ from config import DEV_MODE
 
 class NotificationEmail(TestCase):
     def setUp(self):
-        assert DEV_MODE, "Must be in DEV_MODE, otherwise user will get email"
+        pass
 
     def test_emails(self):
         response = notify_users_of_prices(test_mode=True)
