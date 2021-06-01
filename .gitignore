@@ -9,6 +9,7 @@ venv
 
 # Confidential files
 config/local_config.py
+AgileEnergy/settings_local.py
 cache.json
 
 #Working files

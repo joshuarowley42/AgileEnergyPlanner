@@ -17,19 +17,6 @@ from celery.schedules import crontab
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-it!8+4w=8-@arb2!pkp8r^rm2-mk0r49qf_mwt^zt1szdzk+(-'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
-
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -142,3 +129,10 @@ CELERY_BEAT_SCHEDULE = {'daily-user-notification': {
 # put this in place). I believe this is a redis-specific issue and isn't a problem with
 # RabbitMQ.
 CELERY_BROKER_TRANSPORT_OPTIONS = {'visibility_timeout': 3600*24}
+
+
+try:
+    from .settings_local import *
+except ImportError:
+    raise Exception("An AgileEnergy/settings_local.py file is required. "
+                    "Follow the example settings_local_eg.py file.")
