@@ -1,45 +1,14 @@
-from django.shortcuts import render, redirect
 from datetime import datetime, timedelta
+
+from django.shortcuts import redirect, render
 from tzlocal import get_localzone
 
 from AgileEnergy.celery import app
-
-from .models import CarChargingSession
-from .tasks import tesla_start_charging, tesla_stop_charging
-
-from .insights.data_tools import format_short_date, format_short_date_range, start_of_current_period
-from .insights.visualisation_tools import plot_html
-
-from .common import energy_planner
-
-
-def index(request):
-    # Get Gas and Electric Prices
-    ep_pd = energy_planner.ep_df()
-    gp_pd = energy_planner.gp_from_now_df()
-
-    # Get best stop & start times for Electric usage.
-    best_starts_and_stops, best_price = energy_planner.plan_usage_periods(hours=3, mode="best")
-    peak_starts_and_stops, peak_price = energy_planner.plan_usage_periods(hours=3, mode="peak")
-
-    # Get an HTML graph of the same
-
-    now_ep = ep_pd.values[0][0]
-    now_time = format_short_date(ep_pd.index[0])
-    best_time = format_short_date_range(best_starts_and_stops[0])
-    peak_time = format_short_date_range(peak_starts_and_stops[0])
-    average = energy_planner.average_price()
-    average_excluding_peak = energy_planner.average_price(excluded_periods=peak_starts_and_stops)
-
-    graph = plot_html([ep_pd, gp_pd], starts_and_stops=best_starts_and_stops + peak_starts_and_stops)
-    price_data = [("Current Price", now_time, f"{now_ep:.2f}"),
-                  ("Best 3h", best_time, f"{best_price:.2f}"),
-                  ("Peak 3h", peak_time, f"{peak_price:.2f}"),
-                  ("Average", "all-day", f"{average:.2f}"),
-                  ("Average", "outside peak", f"{average_excluding_peak:.2f}")]
-
-    return render(request, 'index.html', context={"graph": graph,
-                                                  "price_data": price_data})
+from planner.common import energy_planner
+from planner.insights.data_tools import start_of_current_period
+from planner.insights.visualisation_tools import plot_html
+from planner.models import CarChargingSession
+from planner.tasks import tesla_start_charging, tesla_stop_charging
 
 
 def plan_charge(request):
@@ -50,12 +19,12 @@ def plan_charge(request):
         assert len(future_sessions) == 1, "Somehow, there are 2 sessions planned!?"
         return redirect('/charge/session/{}'.format(future_sessions[0].pk))
 
-    departure_hour = int(request.GET.get("departure_hour", 8))
+    departure_hour = int(request.GET.get("departure_hour", 8 if datetime.now().hour < 8 else 17))
     hours_needed = float(request.GET.get("hours_needed", 2))
     max_cost = int(request.GET.get("max_cost", 15))
 
     now = datetime.now(tz=get_localzone())
-    ep_pd = energy_planner.ep_df()
+    ep_pd = energy_planner.ep_df_from_now()
 
     departure = now.replace(hour=departure_hour,
                             minute=0,
@@ -101,7 +70,7 @@ def show_charge(request, session_id):
 
     start_time = min(starts_and_stops[0][0], start_of_current_period())
 
-    ep_pd = energy_planner.ep_df(start_time=start_time)
+    ep_pd = energy_planner.ep_df_from_now(start_time=start_time)
     graph = plot_html([ep_pd], starts_and_stops=starts_and_stops, end_marker=charge_session.departure)
 
     return render(request, 'show_charge.html', context={"graph": graph,

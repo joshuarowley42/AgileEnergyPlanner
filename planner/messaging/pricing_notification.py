@@ -40,8 +40,8 @@ def notify_users_of_prices(test_mode: bool = False):
         logging.info("Data not yet available for tomorrow. Skipping")
         return False
 
-    ep_pd = energy_planner.ep_df()
-    gp_pd = energy_planner.gp_from_now_df()
+    ep_pd = energy_planner.ep_df_from_now()
+    gp_pd = energy_planner.gp_df_from_now()
 
     # Get best stop & start times for Electric usage.
     best_starts_and_stops, best_price = energy_planner.plan_usage_periods(hours=3, mode="best")

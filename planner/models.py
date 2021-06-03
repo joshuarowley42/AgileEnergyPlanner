@@ -29,6 +29,21 @@ class EmailLog(models.Model):
         return f"<Price(time={self.time})>"
 
 
+class SystemStatus(models.Model):
+
+    system_id = models.IntegerField(unique=True)
+
+    hw_nest_override = models.BooleanField()        # Are we disabling the Nest to take control ourselves?
+    hw_elec_heater_on = models.BooleanField()       # Electric heater status
+    hw_gas_heater_on = models.BooleanField()        # Gas..
+
+    ev_charge_override = models.BooleanField()      # If car state not reflecting `ev_charging`; will we update car?
+    ev_charging = models.BooleanField()             # Should we be charging now?
+    ev_soc = models.IntegerField()                  # Latest SoC
+    ev_last_updated = models.DateTimeField(         # When did we last get info from the API
+        validators=[check_timezone])
+
+
 class CarChargingSession(models.Model):
     __tablename__ = 'car_charging_session'
 
