@@ -4,13 +4,13 @@ import pandas
 
 import matplotlib
 import matplotlib.dates as mdates
-from matplotlib.ticker import AutoMinorLocator
 
 from bokeh.plotting import figure
 from bokeh.models import Span
 from bokeh.embed import components
 
 from planner.insights.data_tools import format_short_date_range
+
 
 def plot_html(dfs: list[pandas.DataFrame],
               square_lines: bool = True,
@@ -126,9 +126,9 @@ def plot_png(dfs: list[pandas.DataFrame],
         ax.grid(which='minor')
 
     ax = plt.gca()
-    ax.xaxis.set_major_locator(mdates.DayLocator())
+    ax.xaxis.set_major_locator(mdates.DayLocator(tz=get_localzone()))
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%a %d', tz=get_localzone()))
-    ax.xaxis.set_minor_locator(mdates.HourLocator(interval=3))
+    ax.xaxis.set_minor_locator(mdates.HourLocator(interval=3, tz=get_localzone()))
     ax.xaxis.set_minor_formatter(mdates.DateFormatter('%H', tz=get_localzone()))
     ax.tick_params(which='both', width=1)
     ax.tick_params(which='major', length=10)

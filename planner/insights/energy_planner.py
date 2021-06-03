@@ -1,22 +1,14 @@
 from datetime import datetime, timedelta, timezone
+from tzlocal import get_localzone
 import pandas
 import logging
 
-from ..models import CarChargingSession, CarChargingPeriod
+from ..models import CarChargingSession, CarChargingPeriod, SystemStatus
 
-from .data_tools import find_contiguous_periods, start_of_current_period
+from .data_tools import find_contiguous_periods, start_of_current_period, drop_periods_from_df
 from .exceptions import NoSolutions, NoCrystalBall
 
-
-def drop_periods_from_df(df: pandas.DataFrame,
-                         periods: list[(datetime, datetime)]) -> pandas.DataFrame:
-
-    periods_to_drop = []
-    for period in periods:
-        (start, stop) = period
-        periods_to_drop += list(df[start:stop - timedelta(minutes=30)].index)
-    df = df.drop(index=periods_to_drop)
-    return df
+from django.conf import settings
 
 
 class EnergyPlanner:
@@ -27,20 +19,11 @@ class EnergyPlanner:
         self.energy_provider = energy_provider
         self.car = car
 
-    @property
-    def ep_from_now(self) -> dict:
-        """
-        Get electricity prices starting from "now" - start of the current-half-hour period..
-        """
+    def ep_df_from_now(self,
+                       excluded_periods: list[(datetime, datetime)] = None,
+                       column_name: str = 'electricity price') -> pandas.DataFrame:
 
         start_time = start_of_current_period()
-        return self.energy_provider.get_elec_price(start_time)
-
-    def ep_df(self,
-              start_time: datetime = start_of_current_period(),
-              excluded_periods: list[(datetime, datetime)] = None,
-              column_name: str = 'electricity price') -> pandas.DataFrame:
-
         ep = self.energy_provider.get_elec_price(start_time)
         ep_pd = pandas.DataFrame.from_dict(ep, orient="index", columns=[column_name]).sort_index()
 
@@ -49,7 +32,7 @@ class EnergyPlanner:
 
         return ep_pd
 
-    def gp_from_now_df(self,
+    def gp_df_from_now(self,
                        excluded_periods: (datetime, datetime) = None,
                        column_name: str = 'gas price') -> pandas.DataFrame:
 
@@ -73,7 +56,7 @@ class EnergyPlanner:
         :return: bool
         """
         now = datetime.now(tz=timezone.utc)
-        prices_dict = self.ep_df()
+        prices_dict = self.ep_df_from_now()
         last_time = max(prices_dict.index)
         if last_time.day > now.day:
             return True
@@ -88,7 +71,7 @@ class EnergyPlanner:
         :return:
         """
 
-        ep_pd = self.ep_df(excluded_periods=excluded_periods)
+        ep_pd = self.ep_df_from_now(excluded_periods=excluded_periods)
 
         return ep_pd.mean()[0]
 
@@ -114,7 +97,7 @@ class EnergyPlanner:
 
         assert mode in ["best", "peak"], "'mode' must be 'best' or 'peak'"
 
-        ep_pd = self.ep_df(excluded_periods=excluded_periods)
+        ep_pd = self.ep_df_from_now(excluded_periods=excluded_periods)
 
         window = ep_pd.rolling(timedelta(minutes=30) * periods_needed, min_periods=periods_needed).mean()
         # THe window is backwards looking, so the result will be for the start of the last period.
@@ -158,7 +141,7 @@ class EnergyPlanner:
             assert hours_needed * 2 % 1 == 0, "smallest increment of hours is 0.5"
             periods = int(hours_needed * 2)
 
-        ep_pd = self.ep_df()
+        ep_pd = self.ep_df_from_now()
         data_end = max(ep_pd.index)
 
         if departure is not None:
@@ -193,3 +176,35 @@ class EnergyPlanner:
             period.save()
 
         return charge_session
+
+    def plan_water_heating(self):
+
+        """This is supposed to be executed once per day, as soon as we have new data available.
+        Currently it will make sure we get in 1h of HW heating between
+        * 2300 - 0600*  (Phase A)
+        * 1000* - 1800* (Phase B)
+
+        Where * means tomorrow.
+
+        For now - it assumes uniform usage across the 1h period. Should be weighted so a cheaper 1st 30m is cheaper.
+        """
+        n = datetime.now(tz=get_localzone()).replace(minute=0,
+                                                     second=0,
+                                                     microsecond=0)
+        phase_a = (n.replace(hour=23),
+                   n.replace(hour=6) + timedelta(days=1))
+
+        phase_b = (n.replace(hour=10) + timedelta(days=1),
+                   n.replace(hour=18) + timedelta(days=1))
+
+        system_status = SystemStatus.objects.get(id=settings.AE_SITE_ID)
+
+        assert not system_status.hw_nest_override, "Nest must be overridden."
+
+        if not self.tomorrows_data_available:
+            raise NoCrystalBall("Can't plan before we have data for tomorrow.")
+
+        ep_pd = self.ep_df_from_now()
+        gp_pd = self.gp_df_from_now()
+        gp_pd = gp_pd/settings.AE_GAS_EFFICIENCY    # Adjust gas price to account for boiler efficiency.
+

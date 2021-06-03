@@ -77,3 +77,14 @@ def format_short_date_range(ss: (datetime, datetime), tz=TIMEZONE):
         assert stop.day == start.day + 1, "Stop day must be same day, or the day after, start day."
         date_string += "*"  # * indicates next day
     return date_string
+
+
+def drop_periods_from_df(df: pandas.DataFrame,
+                         periods: list[(datetime, datetime)]) -> pandas.DataFrame:
+
+    periods_to_drop = []
+    for period in periods:
+        (start, stop) = period
+        periods_to_drop += list(df[start:stop - timedelta(minutes=30)].index)
+    df = df.drop(index=periods_to_drop)
+    return df
