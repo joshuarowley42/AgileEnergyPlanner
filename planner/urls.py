@@ -10,5 +10,5 @@ urlpatterns = [
     path('charge/session/<int:session_id>', planner.views.car_charging.show_charge),
     path('charge/schedule/<int:session_id>', planner.views.car_charging.schedule_charge),
     path('charge/cancel/<int:session_id>', planner.views.car_charging.cancel_charge),
-    path('water/', planner.views.car_charging.cancel_charge),
+    path('water/', planner.views.hot_water.hot_water),
 ]

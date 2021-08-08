@@ -88,3 +88,27 @@ class CarChargingPeriod(models.Model):
     def stop_time_formatted(self):
         return datetime.strftime(self.stop_time.astimezone(get_localzone()), "%a %d %H%M")
 
+
+class WaterHeatingPeriod(models.Model):
+    __tablename__ = 'water_heating_period'
+
+    elec_heating = models.BooleanField()
+    start_time = models.DateTimeField(validators=[check_timezone])
+    stop_time = models.DateTimeField(validators=[check_timezone])
+    start_task_id = models.TextField()
+    stop_task_id = models.TextField()
+
+    def as_dict(self):
+        return {"id": self.id,
+                "start_time": self.start_time.replace(tzinfo=pytz.timezone("UTC")),
+                "stop_time": self.stop_time.replace(tzinfo=pytz.timezone("UTC")),
+                "elec_heating": self.elec_heating,
+                }
+
+    @property
+    def start_time_formatted(self):
+        return datetime.strftime(self.start_time.astimezone(get_localzone()), "%a %d %H%M")
+
+    @property
+    def stop_time_formatted(self):
+        return datetime.strftime(self.stop_time.astimezone(get_localzone()), "%a %d %H%M")

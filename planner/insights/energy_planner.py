@@ -3,7 +3,7 @@ from tzlocal import get_localzone
 import pandas
 import logging
 
-from ..models import CarChargingSession, CarChargingPeriod, SystemStatus
+from ..models import CarChargingSession, CarChargingPeriod, WaterHeatingPeriod, SystemStatus
 
 from .data_tools import find_contiguous_periods, start_of_current_period, drop_periods_from_df
 from .exceptions import NoSolutions, NoCrystalBall
@@ -100,8 +100,8 @@ class EnergyPlanner:
         ep_pd = self.ep_df_from_now(excluded_periods=excluded_periods)
 
         window = ep_pd.rolling(timedelta(minutes=30) * periods_needed, min_periods=periods_needed).mean()
-        # THe window is backwards looking, so the result will be for the start of the last period.
-        # Hence, usage should stop 30m later, start calculated based on end.
+        # The window is backwards looking, so the result will be for the start of the last period.
+        # Hence, usage should stop 30m later, start time calculated from end time.
         cheapest = window.min()[0]
         cheapest_stop = window.idxmin()[0] + timedelta(minutes=30)
         cheapest_start = cheapest_stop - timedelta(minutes=30) * periods_needed
@@ -180,31 +180,70 @@ class EnergyPlanner:
     def plan_water_heating(self):
 
         """This is supposed to be executed once per day, as soon as we have new data available.
-        Currently it will make sure we get in 1h of HW heating between
-        * 2300 - 0600*  (Phase A)
+        Currently it will make sure we get in 2h of HW heating between
+        * 0000* - 0600*  (Phase A)
+
+        Phase B disabled
         * 1000* - 1800* (Phase B)
 
         Where * means tomorrow.
 
         For now - it assumes uniform usage across the 1h period. Should be weighted so a cheaper 1st 30m is cheaper.
+        ToDo: Account for uneven probability of usage
+        ToDo: Account for higher power of gas heating
         """
         n = datetime.now(tz=get_localzone()).replace(minute=0,
                                                      second=0,
                                                      microsecond=0)
-        phase_a = (n.replace(hour=23),
+        phase_a = (n.replace(hour=0) + timedelta(days=1),
                    n.replace(hour=6) + timedelta(days=1))
 
-        phase_b = (n.replace(hour=10) + timedelta(days=1),
-                   n.replace(hour=18) + timedelta(days=1))
+        # phase_b = (n.replace(hour=10) + timedelta(days=1),
+        #            n.replace(hour=18) + timedelta(days=1))
 
         system_status = SystemStatus.objects.get(id=settings.AE_SITE_ID)
 
-        assert not system_status.hw_nest_override, "Nest must be overridden."
+        assert system_status.hw_nest_override, "Nest must be overridden."
 
         if not self.tomorrows_data_available:
             raise NoCrystalBall("Can't plan before we have data for tomorrow.")
 
         ep_pd = self.ep_df_from_now()
-        gp_pd = self.gp_df_from_now()
-        gp_pd = gp_pd/settings.AE_GAS_EFFICIENCY    # Adjust gas price to account for boiler efficiency.
+        gp_pd = self.gp_df_from_now()/settings.AE_GAS_EFFICIENCY # Adjust gas price to account for boiler efficiency.
+        fixed_gas_price = gp_pd.min()[0]    # It's a flat price all day
 
+        elec_heating_periods = []
+        gas_heating_periods = []
+
+        for phase in [phase_a]:
+            e = ep_pd[phase[0]:phase[1]-timedelta(minutes=30)]
+
+            # Running the boiler uses electricity. With a consistent gas-price - target times will be when
+            # the electricity is cheapest.
+
+            target_times = e.sort_values(by='electricity price')[:4].sort_index().index
+
+            for time in target_times:
+                if e.loc[time]['electricity price'] <= fixed_gas_price:
+                    elec_heating_periods.append(time)
+                else:
+                    gas_heating_periods.append(time)
+
+        elec_heating_periods = find_contiguous_periods(pandas.DataFrame(elec_heating_periods))
+        gas_heating_periods = find_contiguous_periods(pandas.DataFrame(gas_heating_periods))
+
+        for period in elec_heating_periods:
+            start, stop = period
+            p = WaterHeatingPeriod(start_time=start,
+                                   stop_time=stop,
+                                   elec_heating=True)
+            p.save()
+
+        for period in gas_heating_periods:
+            start, stop = period
+            p = WaterHeatingPeriod(start_time=start,
+                                   stop_time=stop,
+                                   elec_heating=True)
+            p.save()
+
+        return
