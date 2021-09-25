@@ -14,10 +14,20 @@ class EnergyPrices(models.Model):
     __tablename__ = 'energy_prices'
 
     time = models.DateTimeField(unique=True, validators=[check_timezone])
-    price = models.FloatField()
+    data = models.FloatField()
 
     def __repr__(self):
-        return f"<Price(time={self.time}, price={self.price})>"
+        return f"<Price(time={self.time}, price=£{self.data:.2f})>"
+
+
+class EnergyUsage(models.Model):
+    __talename__ = 'energy_usage'
+
+    time = models.DateTimeField(unique=True, validators=[check_timezone])
+    data = models.FloatField()
+
+    def __repr__(self):
+        return f"<Usage(time={self.time}, usage={self.data:.2f}kWh)>"
 
 
 class EmailLog(models.Model):
@@ -30,26 +40,40 @@ class EmailLog(models.Model):
 
 
 class SystemStatus(models.Model):
-
     system_id = models.IntegerField(unique=True)
 
-    hw_nest_override = models.BooleanField()        # Are we disabling the Nest to take control ourselves?
-    hw_elec_heater_on = models.BooleanField()       # Electric heater status
-    hw_gas_heater_on = models.BooleanField()        # Gas..
+    hw_nest_override = models.BooleanField()  # Are we disabling the Nest to take control ourselves?
+    hw_elec_heater_on = models.BooleanField()  # Electric heater status
+    hw_gas_heater_on = models.BooleanField()  # Gas..
 
-    ev_charge_override = models.BooleanField()      # If car state not reflecting `ev_charging`; will we update car?
-    ev_charging = models.BooleanField()             # Should we be charging now?
-    ev_soc = models.IntegerField()                  # Latest SoC
-    ev_last_updated = models.DateTimeField(         # When did we last get info from the API
+    ev_charge_override = models.BooleanField()  # If car state not reflecting `ev_charging`; will we update car?
+    ev_charging = models.BooleanField()  # Should we be charging now?
+    ev_soc = models.IntegerField()  # Latest SoC
+    ev_last_updated = models.DateTimeField(  # When did we last get info from the API
         validators=[check_timezone])
 
 
+class SystemScheduleTasks(models.Model):
+    action_time = models.DateTimeField(validators=[check_timezone])
+    completed = models.BooleanField(default=False)
+    function = models.TextField()
+
+
+# class SystemDailyTasks(models.Model):
+#     action_time = models.TimeField()
+#     last_completed = models.DateTimeField(validators=[check_timezone])
+#     function = models.TextField()
+
+
 class CarChargingSession(models.Model):
+    """
+    A charging "session" relates to a particular plan to charge before a given departure
+    it may contain multiple Start/Stop "periods".
+    """
     __tablename__ = 'car_charging_session'
 
     departure = models.DateTimeField(validators=[check_timezone])
     average_cost = models.FloatField()
-    scheduled = models.BooleanField()
 
     def as_dict(self):
         return {"id": self.id,
@@ -69,8 +93,9 @@ class CarChargingPeriod(models.Model):
 
     start_time = models.DateTimeField(validators=[check_timezone])
     stop_time = models.DateTimeField(validators=[check_timezone])
-    start_task_id = models.TextField()
-    stop_task_id = models.TextField()
+
+    start_task_id = models.ForeignKey(SystemScheduleTasks, on_delete=models.CASCADE)
+    stop_task_id = models.ForeignKey(SystemScheduleTasks, on_delete=models.CASCADE)
 
     parent = models.ForeignKey(CarChargingSession, on_delete=models.CASCADE)
 
@@ -95,8 +120,9 @@ class WaterHeatingPeriod(models.Model):
     elec_heating = models.BooleanField()
     start_time = models.DateTimeField(validators=[check_timezone])
     stop_time = models.DateTimeField(validators=[check_timezone])
-    start_task_id = models.TextField()
-    stop_task_id = models.TextField()
+
+    start_task_id = models.ForeignKey(SystemScheduleTasks, on_delete=models.CASCADE)
+    stop_task_id = models.ForeignKey(SystemScheduleTasks, on_delete=models.CASCADE)
 
     def as_dict(self):
         return {"id": self.id,

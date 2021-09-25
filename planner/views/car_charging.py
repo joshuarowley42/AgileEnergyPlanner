@@ -3,11 +3,10 @@ from datetime import datetime, timedelta
 from django.shortcuts import redirect, render
 from tzlocal import get_localzone
 
-from AgileEnergy.celery import app
 from planner.common import energy_planner
 from planner.insights.data_tools import start_of_current_period
 from planner.insights.visualisation_tools import plot_html
-from planner.models import CarChargingSession
+from planner.models import CarChargingSession, SystemScheduleTasks
 from planner.tasks import tesla_start_charging, tesla_stop_charging
 
 
@@ -55,8 +54,16 @@ def schedule_charge(request, session_id):
     charge_session = CarChargingSession.objects.get(pk=session_id)
 
     for period in charge_session.carchargingperiod_set.all():
-        period.start_task_id = tesla_start_charging.apply_async(eta=period.start_time).id
-        period.stop_task_id = tesla_stop_charging.apply_async(eta=period.stop_time).id
+        start = SystemScheduleTasks(action_time=period.start_time,
+                                    function=tesla_start_charging.__name__)
+        start.save()
+        period.start_task_id = start
+
+        end = SystemScheduleTasks(action_time=period.stop_time,
+                                  function=tesla_stop_charging.__name__)
+        end.save()
+        period.stop_task_id = end
+
     charge_session.scheduled = True
     charge_session.save()
 
@@ -78,12 +85,5 @@ def show_charge(request, session_id):
 
 
 def cancel_charge(request, session_id):
-    charge_session = CarChargingSession.objects.get(pk=session_id)
-
-    for period in charge_session.carchargingperiod_set.all():
-        app.control.revoke(period.start_task_id)
-        app.control.revoke(period.stop_task_id)
-
-    charge_session.scheduled = False
-    charge_session.save()
+    CarChargingSession.objects.get(pk=session_id).delete()
     return redirect("/charge")

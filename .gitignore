@@ -15,5 +15,4 @@ cache.json
 #Working files
 figure.png
 *.sqlite
-celerybeat-schedule
 log

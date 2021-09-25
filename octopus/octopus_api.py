@@ -1,5 +1,5 @@
 import logging
-
+from config import *
 import requests
 from requests.auth import HTTPBasicAuth
 from datetime import datetime, timedelta, timezone
@@ -52,6 +52,26 @@ class OctopusAPIClient:
         return price_list
 
     def get_elec_price(self, start_time, end_time=None):
+        """
+        This function gets electricity prices, but includes a little contextual knowledge about what data
+        is likely to be available before just heading off to get it blindly.
+        """
+        now = datetime.now(tz=timezone.utc)
+
+        # We will never have more data than this
+        if start_time > now.replace(hour=21, minute=30,
+                                    second=0, microsecond=0) + timedelta(days=1):
+            logging.info(f"Data won't be available that far in the future ({start_time}).")
+            return {}
+
+        # Before 1600 (UK) - we know we won't have data for anything beyond 2200 (UTC) tonight.
+        if now.astimezone(TIMEZONE).hour < 16 and start_time > now.replace(hour=21, minute=30,
+                                                                           second=0, microsecond=0):
+            logging.info(f"Data won't be available that far in the future ({start_time}).")
+            return {}
+
+        # At this point - it's worth hitting the API.
+
         url = "{base}/products/" \
               "{tc}/electricity-tariffs/" \
               "E-1R-{tc}-{zone}/" \
@@ -79,29 +99,38 @@ class OctopusAPIClient:
 
         return price_list
 
-    def get_elec_usage(self, start_time):
+    def get_elec_usage(self, start_time, end_time=None):
+
         url = f"{self.base_url}/" \
               f"electricity-meter-points/{self.e_mpan}/" \
               f"meters/{self.e_msn}/" \
               f"consumption/"
-        return self.get_usage(start_time, url)
+        return self.get_usage(url, start_time, end_time)
 
-    def get_gas_usage(self, start_time):
+    def get_gas_usage(self, start_time, end_time=None):
         url = f"{self.base_url}/" \
               f"gas-meter-points/{self.g_mprn}/" \
               f"meters/{self.g_msn}/" \
               f"consumption/"
 
-        return self.get_usage(start_time, url)
+        return self.get_usage(url, start_time, end_time)
 
-    def get_usage(self, start_time, url):
+    def get_usage(self, url, start_time, end_time=None):
+
+        # We will never data in the future
+        now = datetime.now(tz=timezone.utc)
+        if start_time > now:
+            logging.info(f"Data won't be available in the future ({start_time}).")
+            return {}
+
         usage = []
+        params = {"period_from": datetime.strftime(start_time, "%Y-%m-%dT%H:%M:%S%z")}
+        if end_time is not None:
+            params["period_to"] = datetime.strftime(end_time, "%Y-%m-%dT%H:%M:%S%z")
+
         while url is not None:
-            r = requests.get(url,
-                             auth=self.auth,
-                             params={
-                                 "period_from": datetime.strftime(start_time, "%Y-%m-%dT%H:%M:%S%z")}
-                             )
+            logging.info(f"Octopus API request: {url}")
+            r = requests.get(url, auth=self.auth, params=params)
             response = r.json()
             usage += response["results"]
             url = response.get("next", None)
